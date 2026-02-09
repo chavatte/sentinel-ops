@@ -1,0 +1,15 @@
+repos:
+  # 🔴
+  - id: owasp-nodegoat
+    name: "OWASP NodeGoat (Vulnerable)"
+    git: https://github.com/OWASP/NodeGoat.git
+
+  # 🟡
+  - id: create-react-app
+    name: "Create React App (Legacy)"
+    git: https://github.com/facebook/create-react-app.git
+
+  # 🟢
+  - id: axios-lib
+    name: "Axios HTTP (Secure)"
+    git: https://github.com/axios/axios.git
