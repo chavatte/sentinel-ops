@@ -1,7 +1,9 @@
 FROM python:3.11-alpine
 
-RUN apk add --no-cache git openssh npm && \
-    npm install -g pnpm yarn
+RUN apk upgrade --no-cache && \
+    apk add --no-cache git openssh npm nodejs && \
+    npm install -g corepack && \
+    corepack enable
 
 WORKDIR /app
 

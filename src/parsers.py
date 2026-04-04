@@ -1,6 +1,5 @@
 import json
 
-
 def get_bump_type(current, latest):
     if not current or not latest or current == "?":
         return "unknown"
@@ -13,7 +12,6 @@ def get_bump_type(current, latest):
     if len(c) > 1 and len(l) > 1 and c[1] != l[1]:
         return "minor"
     return "patch"
-
 
 def add_audit_item(result, adv, seen_set, path=None):
     adv_id = adv.get("github_advisory_id") or adv.get("id")
@@ -36,7 +34,6 @@ def add_audit_item(result, adv, seen_set, path=None):
         elif severity == "critical":
             result["audit"]["critical"] += 1
 
-
 def parse_yarn_outdated(output, result):
     try:
         for line in output.splitlines():
@@ -57,7 +54,6 @@ def parse_yarn_outdated(output, result):
     except:
         pass
 
-
 def parse_yarn_audit(output, result):
     seen = set()
     try:
@@ -77,7 +73,6 @@ def parse_yarn_audit(output, result):
     except:
         pass
 
-
 def parse_npm_outdated(output, result):
     try:
         data = json.loads(output)
@@ -92,7 +87,6 @@ def parse_npm_outdated(output, result):
             )
     except:
         pass
-
 
 def parse_npm_audit_tree(vulns_dict, result):
     seen = set()
@@ -130,7 +124,6 @@ def parse_npm_audit_tree(vulns_dict, result):
         elif severity == "critical":
             result["audit"]["critical"] += 1
 
-
 def parse_pnpm_audit(output, result):
     try:
         data = json.loads(output)
@@ -141,4 +134,62 @@ def parse_pnpm_audit(output, result):
         elif "vulnerabilities" in data:
             parse_npm_audit_tree(data["vulnerabilities"], result)
     except:
+        pass
+
+def parse_yarn_berry_outdated(output, result):
+    try:
+        json_str = "{}"
+        for line in reversed(output.splitlines()):
+            line = line.strip()
+            if line.startswith("{") or line.startswith("["):
+                json_str = line
+                break
+        
+        data = json.loads(json_str)
+        
+        if isinstance(data, dict):
+            for pkg, info in data.items():
+                result["outdated"].append(
+                    {
+                        "name": pkg,
+                        "current": info.get("current", "?"),
+                        "latest": info.get("latest", "?"),
+                        "bump": get_bump_type(info.get("current"), info.get("latest")),
+                    }
+                )
+        elif isinstance(data, list):
+            for item in data:
+                result["outdated"].append(
+                    {
+                        "name": item.get("name", "unknown"),
+                        "current": item.get("current", "?"),
+                        "latest": item.get("latest", "?"),
+                        "bump": get_bump_type(item.get("current"), item.get("latest")),
+                    }
+                )
+    except Exception as e:
+        pass
+
+def parse_yarn_berry_audit(output, result):
+    seen = set()
+    try:
+        for line in output.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+                
+                if "vulnerabilities" in data:
+                    parse_npm_audit_tree(data["vulnerabilities"], result)
+                
+                elif "advisories" in data:
+                    for _, adv in data["advisories"].items():
+                        add_audit_item(result, adv, seen)
+                        
+                elif "advisory" in data:
+                    add_audit_item(result, data["advisory"], seen)
+            except:
+                continue
+    except Exception as e:
         pass
