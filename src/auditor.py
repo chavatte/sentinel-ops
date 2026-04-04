@@ -47,6 +47,7 @@ class RepoAuditor:
         return cmd
 
     def _exec(self, cmd_list, cwd, env):
+        print(f"[{self.name}] Executando: {' '.join(cmd_list)}")
         p = subprocess.run(cmd_list, cwd=cwd, env=env, capture_output=True, text=True)
         if p.returncode != 0:
             err_msg = p.stderr.strip() or p.stdout.strip() or "Sem mensagem de erro"
@@ -79,6 +80,8 @@ class RepoAuditor:
 
             env = os.environ.copy()
             env["GIT_SSH_COMMAND"] = self._get_ssh_command(safe_key)
+            env["CI"] = "true" 
+            env["YARN_ENABLE_TELEMETRY"] = "0"
 
             self._exec(["git", "init", "-q"], self.work_dir, env)
             self._exec(["git", "remote", "add", "origin", self.url], self.work_dir, env)
@@ -88,72 +91,117 @@ class RepoAuditor:
 
             git_info = os.path.join(self.work_dir, ".git/info")
             os.makedirs(git_info, exist_ok=True)
+            
             with open(os.path.join(git_info, "sparse-checkout"), "w") as f:
-                f.write("package.json\nyarn.lock\npackage-lock.json\npnpm-lock.yaml\n")
+                f.write("package.json\nyarn.lock\n.yarnrc.yml\n.yarn/releases/\n.yarn/plugins/\npackage-lock.json\npnpm-lock.yaml\n")
 
             self._exec(
                 ["git", "fetch", "--depth=1", "origin", "HEAD"], self.work_dir, env
             )
             self._exec(["git", "checkout", "FETCH_HEAD"], self.work_dir, env)
+            
+            os.makedirs(os.path.join(self.work_dir, ".yarn", "releases"), exist_ok=True)
+            os.makedirs(os.path.join(self.work_dir, ".yarn", "plugins"), exist_ok=True)
 
             if not os.path.exists(os.path.join(self.work_dir, "package.json")):
                 raise FileNotFoundError("package.json não encontrado")
 
-            if os.path.exists(os.path.join(self.work_dir, "yarn.lock")):
-                self.manager = "yarn"
+            yarn_lock_path = os.path.join(self.work_dir, "yarn.lock")
+            if os.path.exists(yarn_lock_path):
+                with open(yarn_lock_path, "r", encoding="utf-8") as f_lock:
+                    header = f_lock.read(200)
+                    if "__metadata" in header:
+                        self.manager = "yarn_berry"
+                    else:
+                        self.manager = "yarn"
             elif os.path.exists(os.path.join(self.work_dir, "pnpm-lock.yaml")):
                 self.manager = "pnpm"
             else:
                 self.manager = "npm"
+                
             result["manager"] = self.manager
+            
+            if self.manager == "yarn_berry":
+                proc_ver = subprocess.run(
+                    ["yarn", "--version"], 
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                )
+                yarn_version = proc_ver.stdout.strip()
+                
+                major_version = 4
+                if yarn_version and "." in yarn_version:
+                    try:
+                        major_version = int(yarn_version.split(".")[0])
+                    except:
+                        pass
+                
+                print(f"[{self.name}] Detetado Yarn v{yarn_version}. Preparando ambiente...")
 
-            if self.manager == "yarn":
+                plugin_url = f"https://go.mskelton.dev/yarn-outdated/v{major_version}"
+                
+                self._exec(
+                    ["yarn", "plugin", "import", plugin_url],
+                    self.work_dir, env
+                )
+                
+                print(f"[{self.name}] Analisando pacotes desatualizados (Yarn Berry)...")
                 proc_out = subprocess.run(
                     ["yarn", "outdated", "--json"],
-                    cwd=self.work_dir,
-                    capture_output=True,
-                    text=True,
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                )
+                parsers.parse_yarn_berry_outdated(proc_out.stdout, result)
+
+                print(f"[{self.name}] Auditando vulnerabilidades (Yarn Berry)...")
+                proc_audit = subprocess.run(
+                    ["yarn", "npm", "audit", "--all", "--recursive", "--json"],
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                )
+                parsers.parse_yarn_berry_audit(proc_audit.stdout, result)
+
+            elif self.manager == "yarn":
+                print(f"[{self.name}] Analisando pacotes desatualizados (Yarn Clássico)...")
+                proc_out = subprocess.run(
+                    ["yarn", "outdated", "--json"],
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
                 )
                 parsers.parse_yarn_outdated(proc_out.stdout, result)
+                
+                print(f"[{self.name}] Auditando vulnerabilidades (Yarn Clássico)...")
                 proc_audit = subprocess.run(
                     ["yarn", "audit", "--json"],
-                    cwd=self.work_dir,
-                    capture_output=True,
-                    text=True,
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
                 )
                 parsers.parse_yarn_audit(proc_audit.stdout, result)
 
             elif self.manager == "pnpm":
+                self._exec(["corepack", "use", "pnpm@latest"], self.work_dir, env)
+                
+                print(f"[{self.name}] Analisando pacotes desatualizados (PNPM)...")
                 proc_out = subprocess.run(
                     ["pnpm", "outdated", "--json"],
-                    cwd=self.work_dir,
-                    capture_output=True,
-                    text=True,
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
                 )
-                parsers.parse_npm_outdated(
-                    proc_out.stdout, result
-                )  # PNPM uses similar outdated format often
+                parsers.parse_npm_outdated(proc_out.stdout, result)
+                
+                print(f"[{self.name}] Auditando vulnerabilidades (PNPM)...")
                 proc_audit = subprocess.run(
                     ["pnpm", "audit", "--json"],
-                    cwd=self.work_dir,
-                    capture_output=True,
-                    text=True,
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
                 )
                 parsers.parse_pnpm_audit(proc_audit.stdout, result)
 
             else:
+                print(f"[{self.name}] Analisando pacotes desatualizados (NPM)...")
                 proc_out = subprocess.run(
                     ["npm", "outdated", "--json"],
-                    cwd=self.work_dir,
-                    capture_output=True,
-                    text=True,
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
                 )
                 parsers.parse_npm_outdated(proc_out.stdout, result)
+                
+                print(f"[{self.name}] Auditando vulnerabilidades (NPM)...")
                 proc_audit = subprocess.run(
                     ["npm", "audit", "--json"],
-                    cwd=self.work_dir,
-                    capture_output=True,
-                    text=True,
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
                 )
                 try:
                     parsers.parse_npm_audit_tree(
