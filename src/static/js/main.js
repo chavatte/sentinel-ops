@@ -122,9 +122,9 @@ function render(data) {
 
     const outHtml = hasOut
       ? repo.outdated
-        .map((p) => {
-          const bumpClass = getBumpClass(p.bump);
-          return `
+          .map((p) => {
+            const bumpClass = getBumpClass(p.bump);
+            return `
             <div class="pkg">
               <div style="overflow:hidden; text-overflow:ellipsis;"><code style="color:var(--text-main)">${p.name}</code></div>
               <div style="display:flex; align-items:center; gap:8px; white-space:nowrap;">
@@ -132,8 +132,8 @@ function render(data) {
                 <span class="pill ${bumpClass}" style="font-size:0.6rem">${bumpLabel(p.bump)}</span>
               </div>
             </div>`;
-        })
-        .join("")
+          })
+          .join("")
       : !repo.error
         ? `<div style="text-align:center; padding:15px; color:var(--accent); opacity:0.3; letter-spacing:1px;">
            <i class="fas fa-check-circle" style="font-size:1.5em; margin-bottom:5px"></i><br>
@@ -161,12 +161,12 @@ function render(data) {
           </summary>
           <div style="margin-top:10px; display:flex; flex-direction:column; gap:10px">
             ${auditItems
-          .map((v) => {
-            const sev = (v.severity || "unknown").toLowerCase();
-            const klass = sevClass(sev);
-            const id = v.id ? `<code>${v.id}</code>` : ``;
+              .map((v) => {
+                const sev = (v.severity || "unknown").toLowerCase();
+                const klass = sevClass(sev);
+                const id = v.id ? `<code>${v.id}</code>` : ``;
 
-            return `
+                return `
                 <div class="vuln">
                   <div class="vuln-title">
                     <div>
@@ -178,15 +178,16 @@ function render(data) {
                   <div style="font-size:0.85rem; opacity:0.8; margin-bottom:5px;">
                     ${v.title || "Vulnerabilidade Detectada"}
                   </div>
-                  ${v.recommendation
-                ? `<div style="font-size:0.8rem; color:var(--accent);">
+                  ${
+                    v.recommendation
+                      ? `<div style="font-size:0.8rem; color:var(--accent);">
                     <i class="fas fa-wrench"></i> ${v.recommendation}
                   </div>`
-                : ""
-              }
+                      : ""
+                  }
                 </div>`;
-          })
-          .join("")}
+              })
+              .join("")}
           </div>
         </details>
       `;
@@ -197,14 +198,20 @@ function render(data) {
     card.style = borderStyle;
 
     const managerIcon =
-      repo.manager === "yarn"
+      repo.manager === "yarn" || repo.manager === "yarn_berry"
         ? "fa-yarn"
         : repo.manager === "npm"
           ? "fa-npm"
           : "fa-code";
+
+    const versionBadge =
+      repo.manager === "yarn_berry"
+        ? `<span style="font-size:0.6em; opacity:0.6; margin-left:2px">v4+</span>`
+        : "";
+
     const displayManager =
       repo.manager !== "unknown"
-        ? `<i class="fab ${managerIcon}" style="font-size:0.8em; opacity:0.5; margin-left:5px"></i>`
+        ? `<i class="fab ${managerIcon}" style="font-size:0.8em; opacity:0.5; margin-left:5px"></i>${versionBadge}`
         : "";
 
     card.innerHTML = `
@@ -216,11 +223,12 @@ function render(data) {
         <div>${statusHtml}</div>
       </div>
       
-      ${repo.error
-        ? `<div style="color:var(--danger); padding:10px; border:1px solid var(--danger); background:rgba(255,0,0,0.1); font-size:0.8rem;">
+      ${
+        repo.error
+          ? `<div style="color:var(--danger); padding:10px; border:1px solid var(--danger); background:rgba(255,0,0,0.1); font-size:0.8rem;">
         <strong><i class="fas fa-times"></i> FALHA NA AUDITORIA:</strong><br>${repo.error}
       </div>`
-        : ""
+          : ""
       }
 
       <div class="pkg-list">${outHtml}</div>
@@ -242,7 +250,7 @@ function startPolling() {
   pollTimer = setInterval(async () => {
     try {
       await loadStatus();
-    } catch { }
+    } catch {}
   }, 2500);
 }
 
