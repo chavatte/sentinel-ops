@@ -27,6 +27,7 @@ def add_audit_item(result, adv, seen_set, path=None):
                 "cves": adv.get("cves", []),
                 "recommendation": adv.get("recommendation"),
                 "paths": [path] if path else [],
+                "source": ["Audit"],
             }
         )
         if severity == "high":
@@ -117,6 +118,7 @@ def parse_npm_audit_tree(vulns_dict, result):
                     "Update available" if item.get("fixAvailable") else "Check deps"
                 ),
                 "paths": [node for node in item.get("nodes", [])],
+                "source": ["Audit"],
             }
         )
         if severity == "high":
@@ -193,3 +195,62 @@ def parse_yarn_berry_audit(output, result):
                 continue
     except Exception as e:
         pass
+    
+def parse_osv_audit(output, result):
+    output = output.strip()
+    if not output: return
+        
+    if not output.startswith('{'):
+        start_idx = output.find('{')
+        if start_idx != -1:
+            output = output[start_idx:]
+        else:
+            return
+
+    try:
+        data = json.loads(output)
+        for res in data.get("results", []):
+            for pkg in res.get("packages", []):
+                pkg_name = pkg.get("package", {}).get("name", "Unknown")
+                for vuln in pkg.get("vulnerabilities", []):
+                    vuln_id = vuln.get("id")
+                    if not vuln_id: continue
+                    
+                    existing_item = next((item for item in result.get("audit_items", []) if item.get("id") == vuln_id), None)
+                    
+                    if existing_item:
+                        if "source" not in existing_item:
+                            existing_item["source"] = ["Audit"]
+                        if "OSV" not in existing_item["source"]:
+                            existing_item["source"].append("OSV")
+                        continue
+                        
+                    severity = "moderate"
+                    db_specific = vuln.get("database_specific", {})
+                    if "severity" in db_specific:
+                        sev = str(db_specific["severity"]).lower()
+                        if sev in ["low", "moderate", "high", "critical"]:
+                            severity = sev
+                            
+                    summary = vuln.get("summary") or vuln.get("details", "Vulnerabilidade descoberta pelo OSV")
+                    if summary and len(summary) > 100:
+                        summary = summary[:97] + "..."
+                        
+                    result["audit_items"].append({
+                        "id": vuln_id,
+                        "severity": severity,
+                        "module": pkg_name,
+                        "title": summary,
+                        "cves": vuln.get("aliases", []),
+                        "recommendation": "Verifique documentação CVE/GHSA para mitigações.",
+                        "paths": [],
+                        "source": ["OSV"]
+                    })
+                    
+                    if severity == "high":
+                        result["audit"]["high"] += 1
+                    elif severity == "critical":
+                        result["audit"]["critical"] += 1
+                        
+    except Exception as e:
+        print(f"⚠️ Erro ao fazer parse do JSON do OSV: {e}")

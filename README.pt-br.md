@@ -18,7 +18,7 @@ _____________,'      ,',_____|      |    | |              \ |      Portfolio Cha
              |   ,','    ____|_____/    /  |                |    ________________________________________|___
              | ,','  __/ |             /   |                |  /                                            /
 _____________|','   ///_/-------------/   |                 \_/____________________________________________/ 
-              |===========,'                                      
+              |===========,'                                  
 			  
 
 </pre>
@@ -27,26 +27,29 @@ _____________|','   ///_/-------------/   |                 \_/_________________
 
 <img src="./assets/logo.png" alt="Sentinel Ops" style="margin: 10px;">
 
+
 # 🛡️ Sentinel Ops
 
 </div>
 
 > **Chavatte Security Operations Center** > Monitor de Vulnerabilidades e Dependências Universal para Projetos Node.js
 
-![Version](https://img.shields.io/badge/version-1.0.5-00ff41?style=for-the-badge&logo=security)
+![Version](https://img.shields.io/badge/version-1.1.4-00ff41?style=for-the-badge&logo=security)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)
 
-O **Sentinel Ops** é uma ferramenta de auditoria de segurança contínua projetada para Home Labs, servidores CasaOS e equipes de DevOps. Ele monitora automaticamente seus repositórios Git, verifica dependências desatualizadas e alerta sobre vulnerabilidades de segurança (CVEs/GHSAs) em uma interface Cyberpunk/SecOps.
+O **Sentinel Ops** é uma ferramenta de auditoria de segurança contínua projetada para Home Labs, servidores CasaOS e equipes de SecOps/DevOps. Ele monitora automaticamente seus repositórios Git, verifica dependências desatualizadas e alerta sobre vulnerabilidades de segurança (CVEs/GHSAs) em uma interface Cyberpunk avançada.
 
 ---
 
 ## ✨ Funcionalidades
 
-* **🕵️‍♂️ Universal:** Detecta e audita automaticamente projetos **NPM**, **Yarn** e **PNPM**.
+* **🕵️‍♂️ Universal:** Detecta e audita automaticamente projetos **NPM**, **Yarn (Clássico e Berry v4+)** e **PNPM**.
+* **📡 Integração OSV-Scanner:** Potencializado pelo banco de dados OSV do Google para detectar vulnerabilidades que auditorias nativas podem deixar passar.
+* **🎯 Threat Intel:** Links inteligentes integrados direcionam você exatamente para o relatório da ameaça (NIST NVD, GitHub Advisories, OSV) para mitigação rápida.
 * **⚡ Ultra Rápido (Sparse Checkout):** Não clona o repositório inteiro. Baixa apenas os arquivos de manifesto (`package.json`, `lockfiles`), economizando banda e armazenamento.
 * **🔒 Seguro:** Executa em container isolado, sem acesso de escrita ao repositório remoto.
-* **🖥️ Dashboard Visual:** Interface web responsiva com tema Dark Mode, atualizações em tempo real e detalhamento de riscos.
+* **🖥️ Dashboard Visual:** Interface web responsiva com tema Dark Mode, atualizações em tempo real, Badges de Origem e detalhamento de riscos.
 * **🐳 Docker Native:** Pronto para rodar no Docker Compose, CasaOS ou Portainer.
 * **🔑 Suporte Híbrido:** Funciona com repositórios privados (via SSH) e públicos (via HTTPS).
 
@@ -66,6 +69,7 @@ Crie uma pasta para o projeto e dentro dela a seguinte estrutura:
     └── repos.yml       # Lista de repositórios
 ```
 
+
 ### 2. Configuração (`docker-compose.yml`)
 
 **YAML**
@@ -74,7 +78,7 @@ Crie uma pasta para o projeto e dentro dela a seguinte estrutura:
 version: "3.8"
 services:
   sentinel-ops:
-    image: ghcr.io/devchavatte/sentinel-ops:latest # Ou build local
+    image: chavatte/sentinel-ops:latest
     container_name: sentinel-ops
     restart: unless-stopped
     ports:
@@ -119,7 +123,7 @@ repos:
 **Bash**
 
 ```
-docker-compose up -d
+docker compose up -d
 ```
 
 Acesse o painel em: `http://localhost:8080`
@@ -142,7 +146,7 @@ Se você precisa auditar repositórios privados (GitHub, GitLab, Bitbucket):
 
 Se quiser rodar fora do Docker ou contribuir com o código:
 
-**Pré-requisitos:** Python 3.11+, Git, Node.js, Yarn, NPM e PNPM instalados.
+**Pré-requisitos:** Python 3.11+, Git, Node.js, Corepack (Yarn/PNPM) e OSV-Scanner instalados.
 
 1. Clone este repositório.
 2. Instale as dependências Python:
@@ -163,15 +167,14 @@ Se quiser rodar fora do Docker ou contribuir com o código:
 
 ## 📸 Screenshots
 
-| **Dashboard Desktop** |
-| -------------------------------- |
-| <img src="assets/desktop.png" alt="Dashboard Desktop"> |
-| <img src="assets/desktop_1.png" alt="Dashboard Desktop">  |
+| **Dashboard Desktop**                                  |
+| ------------------------------------------------------------ |
+| `<img src="assets/desktop.png" alt="Dashboard Desktop">`   |
+| `<img src="assets/desktop_1.png" alt="Dashboard Desktop">` |
 
-| **Responsivo Mobile** | **Responsivo Mobile** |
-| -------------------------------- | -------------------------------- |
-| <img src="assets/mobile.png" alt="Dashboard Mobile"> | <img src="assets/mobile_1.png" alt="Dashboard Mobiled"> |
-
+| **Responsivo Mobile**                              | **Responsivo Mobile**                                 |
+| -------------------------------------------------------- | ----------------------------------------------------------- |
+| `<img src="assets/mobile.png" alt="Dashboard Mobile">` | `<img src="assets/mobile_1.png" alt="Dashboard Mobiled">` |
 
 ---
 
@@ -185,9 +188,8 @@ Consulte o arquivo `LICENSE` para mais detalhes.
 
 <div align="center">
 
-`<b>`CHAVATTE SECURITY `</b>`
+`<b>`CHAVATTE SECURITY`</b>`
 
-Desenvolvido por `<a href="https://github.com/chavatte">`DevChavatte `</a>`
+Desenvolvido por `<a href="https://github.com/chavatte">`DevChavatte`</a>`
 
 </div>
-
