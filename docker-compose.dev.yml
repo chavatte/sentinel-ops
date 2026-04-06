@@ -2,7 +2,7 @@ services:
   sentinel-ops:
     container_name: sentinel-ops
     image: chavatte/sentinel-ops:latest
-    pull_policy: always
+    build: .
     restart: unless-stopped
     ports:
       - "9393:8080"
