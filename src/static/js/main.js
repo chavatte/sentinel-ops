@@ -166,25 +166,59 @@ function render(data) {
                 const klass = sevClass(sev);
                 const id = v.id ? `<code>${v.id}</code>` : ``;
 
+                let sourcesHtml = "";
+                const sources = Array.isArray(v.source) ? v.source : ["Audit"]; // Fallback
+                if (sources.length > 0) {
+                  sourcesHtml =
+                    `<span class="source-tags">` +
+                    sources
+                      .map((s) => {
+                        if (s === "Audit")
+                          return `<span class="tag-src src-audit"><i class="fas fa-microchip"></i> NATIVO</span>`;
+                        if (s === "OSV")
+                          return `<span class="tag-src src-osv"><i class="fas fa-satellite-dish"></i> OSV</span>`;
+                        return ``;
+                      })
+                      .join("") +
+                    `</span>`;
+                }
+
+                let infoUrl = `https://google.com/search?q=${v.id || v.module}`;
+                if (v.id) {
+                  if (v.id.startsWith("GHSA")) {
+                    infoUrl = `https://github.com/advisories/${v.id}`;
+                  } else if (v.id.startsWith("CVE")) {
+                    infoUrl = `https://nvd.nist.gov/vuln/detail/${v.id}`;
+                  } else if (v.id !== "NPM-AUDIT") {
+                    infoUrl = `https://osv.dev/vulnerability/${v.id}`;
+                  }
+                }
+
                 return `
                 <div class="vuln">
                   <div class="vuln-title">
-                    <div>
+                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 5px;">
                       <span class="pill ${klass}">${sevLabel(sev)}</span>
-                      <strong style="margin-left:5px; color:#fff">${v.module}</strong>
+                      <strong style="margin-left:5px; color:#fff; font-size:1.05rem;">${v.module}</strong>
+                      ${sourcesHtml}
                     </div>
                     <div class="vuln-meta"><span>${id}</span></div>
                   </div>
-                  <div style="font-size:0.85rem; opacity:0.8; margin-bottom:5px;">
+                  <div style="font-size:0.85rem; opacity:0.8; margin-bottom:8px; line-height: 1.4;">
                     ${v.title || "Vulnerabilidade Detectada"}
                   </div>
-                  ${
-                    v.recommendation
-                      ? `<div style="font-size:0.8rem; color:var(--accent);">
-                    <i class="fas fa-wrench"></i> ${v.recommendation}
-                  </div>`
-                      : ""
-                  }
+                  <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 5px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px;">
+                      ${
+                        v.recommendation
+                          ? `<div style="font-size:0.8rem; color:var(--accent); max-width: 70%;">
+                            <i class="fas fa-wrench"></i> ${v.recommendation}
+                          </div>`
+                          : "<div></div>"
+                      }
+                      <a href="${infoUrl}" target="_blank" class="vuln-link" title="Analisar Threat Intel">
+                          <i class="fas fa-crosshairs"></i> Intel
+                      </a>
+                  </div>
                 </div>`;
               })
               .join("")}
