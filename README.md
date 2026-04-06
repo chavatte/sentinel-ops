@@ -18,7 +18,7 @@ _____________,'      ,',_____|      |    | |              \ |      Portfolio Cha
              |   ,','    ____|_____/    /  |                |    ________________________________________|___
              | ,','  __/ |             /   |                |  /                                            /
 _____________|','   ///_/-------------/   |                 \_/____________________________________________/ 
-              |===========,'                                      
+              |===========,'                                    
 			  
 
 </pre>
@@ -35,21 +35,22 @@ _____________|','   ///_/-------------/   |                 \_/_________________
 
 [![Portuguese Version](https://img.shields.io/badge/Leia_em-Português-green?style=for-the-badge)](README.pt-br.md)
 
-![Version](https://img.shields.io/badge/version-1.0.5-00ff41?style=for-the-badge&logo=security)
+![Version](https://img.shields.io/badge/version-1.1.4-00ff41?style=for-the-badge&logo=security)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)
 
-**Sentinel Ops** is a continuous security audit tool designed for Home Labs, CasaOS servers, and DevOps teams. It automatically monitors your Git repositories, checks for outdated dependencies, and alerts on security vulnerabilities (CVEs/GHSAs) via a responsive Cyberpunk/SecOps interface.
-
+**Sentinel Ops** is a continuous security audit tool designed for Home Labs, CasaOS servers, and DevOps/SecOps teams. It automatically monitors your Git repositories, checks for outdated dependencies, and alerts on security vulnerabilities (CVEs/GHSAs) via a responsive Cyberpunk interface.
 
 ---
 
 ## ✨ Features
 
-* **🕵️‍♂️ Universal:** Automatically detects and audits **NPM**, **Yarn**, and **PNPM** projects.
+* **🕵️‍♂️ Universal:** Automatically detects and audits **NPM**, **Yarn (Classic & Berry v4+)**, and **PNPM** projects.
+* **📡 OSV-Scanner Integration:** Powered by Google's OSV database to detect cross-ecosystem vulnerabilities missed by native audits.
+* **🎯 Threat Intel:** Built-in intelligent links direct you to the exact advisory (NIST NVD, GitHub Advisories, OSV) for quick mitigation.
 * **⚡ Ultra Fast (Sparse Checkout):** Does not clone the entire repo. Only downloads manifest files (`package.json`, `lockfiles`), saving bandwidth and storage.
 * **🔒 Secure:** Runs in an isolated container with no write access to the remote repository.
-* **🖥️ Visual Dashboard:** Responsive Web UI with Dark Mode, real-time updates, and risk details.
+* **🖥️ Visual Dashboard:** Responsive Web UI with Dark Mode, real-time updates, Source Badges, and risk details.
 * **🐳 Docker Native:** Ready for Docker Compose, CasaOS, or Portainer.
 * **🔑 Hybrid Support:** Works with private repositories (via SSH) and public ones (via HTTPS).
 
@@ -78,7 +79,7 @@ Create a project folder with the following structure:
 version: "3.8"
 services:
   sentinel-ops:
-    image: ghcr.io/devchavatte/sentinel-ops:latest # Or local build
+    image: chavatte/sentinel-ops:latest
     container_name: sentinel-ops
     restart: unless-stopped
     ports:
@@ -123,7 +124,7 @@ repos:
 **Bash**
 
 ```
-docker-compose up -d
+docker compose up -d
 ```
 
 Access dashboard at: `http://localhost:8080`
@@ -146,7 +147,7 @@ If you need to audit private repositories (GitHub, GitLab, Bitbucket):
 
 To run outside Docker or contribute:
 
-**Prerequisites:** Python 3.11+, Git, Node.js, Yarn, NPM, and PNPM installed.
+**Prerequisites:** Python 3.11+, Git, Node.js, Corepack (Yarn/PNPM), and OSV-Scanner installed.
 
 1. Clone this repository.
 2. Install Python dependencies:
@@ -172,7 +173,6 @@ See the `LICENSE` file for details.
 
 ---
 
-
 <div align="center">
 
 <b>CHAVATTE SECURITY</b>
@@ -180,4 +180,3 @@ See the `LICENSE` file for details.
 Developed by <a href="https://github.com/chavatte">DevChavatte</a>
 
 </div>
-
