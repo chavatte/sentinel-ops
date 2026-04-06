@@ -209,6 +209,26 @@ class RepoAuditor:
                     )
                 except:
                     pass
+                
+            print(f"[{self.name}] Realizando varredura avançada com OSV-Scanner...")
+            lockfile_map = {
+                "yarn": "yarn.lock",
+                "yarn_berry": "yarn.lock",
+                "pnpm": "pnpm-lock.yaml",
+                "npm": "package-lock.json"
+            }
+            
+            target_lockfile = lockfile_map.get(self.manager)
+            if target_lockfile and os.path.exists(os.path.join(self.work_dir, target_lockfile)):
+                proc_osv = subprocess.run(
+                    ["osv-scanner", "--format", "json", "--lockfile", target_lockfile],
+                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                )
+                
+                if not proc_osv.stdout.strip() and proc_osv.stderr.strip():
+                    print(f"[{self.name}] ⚠️ OSV-Scanner falhou: {proc_osv.stderr.strip()}")
+                    
+                parsers.parse_osv_audit(proc_osv.stdout, result)
 
             result["ok"] = (
                 result["audit"]["high"] == 0 and result["audit"]["critical"] == 0
