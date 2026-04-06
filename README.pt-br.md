@@ -169,12 +169,12 @@ Se quiser rodar fora do Docker ou contribuir com o código:
 
 | **Dashboard Desktop**                                  |
 | ------------------------------------------------------------ |
-| `<img src="assets/desktop.png" alt="Dashboard Desktop">`   |
-| `<img src="assets/desktop_1.png" alt="Dashboard Desktop">` |
+| <img src="./assets/desktop.png" alt="Dashboard Desktop">   |
+| <img src="./assets/desktop_1.png" alt="Dashboard Desktop"> |
 
 | **Responsivo Mobile**                              | **Responsivo Mobile**                                 |
 | -------------------------------------------------------- | ----------------------------------------------------------- |
-| `<img src="assets/mobile.png" alt="Dashboard Mobile">` | `<img src="assets/mobile_1.png" alt="Dashboard Mobiled">` |
+| <img src="./assets/mobile.png" alt="Dashboard Mobile"> | <img src="./assets/mobile_1.png" alt="Dashboard Mobiled"> |
 
 ---
 
@@ -190,6 +190,6 @@ Consulte o arquivo `LICENSE` para mais detalhes.
 
 `<b>`CHAVATTE SECURITY`</b>`
 
-Desenvolvido por `<a href="https://github.com/chavatte">`DevChavatte`</a>`
+Desenvolvido por <a href="https://github.com/chavatte">DevChavatte</a>
 
 </div>
