@@ -47,6 +47,7 @@ def update_files(old_version, new_version):
             
         content = content.replace(f"[VERSION {old_version}]", f"[VERSION {new_version}]")
         content = content.replace(f"version-{old_version}-00ff41", f"version-{new_version}-00ff41")
+        content = content.replace(f"?v={old_version}", f"?v={new_version}")
         
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
@@ -55,7 +56,16 @@ def update_files(old_version, new_version):
 
 def run_command(command):
     print(f"\n⚙️  Executando: {command}")
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    
+    process = subprocess.Popen(
+        command, 
+        shell=True, 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.STDOUT, 
+        text=True, 
+        encoding="utf-8", 
+        errors="replace"
+    )
     
     for line in process.stdout:
         print(line, end="")
@@ -79,6 +89,7 @@ if __name__ == "__main__":
     update_files(current_version, new_version)
     print(f"🎉 Textos da versão {new_version} aplicados com sucesso!\n")
     print("-" * 50)
+    
     resposta_build = input("🐳 Deseja fazer o BUILD da nova imagem Docker agora? (S/n): ").strip().lower()
     
     if resposta_build in ['', 's', 'sim', 'y', 'yes']:

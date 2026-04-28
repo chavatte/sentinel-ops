@@ -91,34 +91,61 @@ function render(data) {
   }
 
   data.results.sort((a, b) => {
-    const aBad = !a.ok || (a.audit && a.audit.high + a.audit.critical > 0);
-    const bBad = !b.ok || (b.audit && b.audit.high + b.audit.critical > 0);
-    return bBad - aBad;
+    const getScore = (r) => {
+      if (!r.ok || r.error) return 4;
+      if ((r.audit?.high || 0) + (r.audit?.critical || 0) > 0) return 3;
+      if (Array.isArray(r.audit_items) && r.audit_items.length > 0) return 2;
+      if ((r.outdated || []).length > 0) return 1;
+      return 0;
+    };
+    return getScore(b) - getScore(a);
   });
 
   for (const repo of data.results) {
     const audit = repo.audit || { high: 0, critical: 0 };
-    const auditCount = (audit.high || 0) + (audit.critical || 0);
+    const critHighCount = (audit.high || 0) + (audit.critical || 0);
 
     const hasOut = (repo.outdated || []).length > 0;
     const auditItems = Array.isArray(repo.audit_items) ? repo.audit_items : [];
+    const totalVulns = auditItems.length;
 
-    let statusHtml = "";
+    let badges = [];
     let borderStyle = "";
 
     if (repo.error) {
-      statusHtml = `<span class="pill warn"><i class="fas fa-exclamation-triangle"></i> ERROR</span>`;
-      borderStyle = "border-left: 3px solid var(--warning);";
-    } else if (auditCount > 0) {
-      statusHtml = `<span class="pill bad"><i class="fas fa-biohazard"></i> ${audit.high}H / ${audit.critical}C</span>`;
-      borderStyle = "border-left: 3px solid var(--danger);";
-    } else if (hasOut) {
-      statusHtml = `<span class="pill warn"><i class="fas fa-arrow-up"></i> UPDATE</span>`;
+      badges.push(
+        `<span class="pill warn"><i class="fas fa-exclamation-triangle"></i> ERROR</span>`,
+      );
       borderStyle = "border-left: 3px solid var(--warning);";
     } else {
-      statusHtml = `<span class="pill ok"><i class="fas fa-shield-alt"></i> SECURE</span>`;
-      borderStyle = "border-left: 3px solid var(--accent);";
+      if (critHighCount > 0) {
+        badges.push(
+          `<span class="pill bad"><i class="fas fa-biohazard"></i> ${audit.high}H / ${audit.critical}C</span>`,
+        );
+        borderStyle = "border-left: 3px solid var(--danger);";
+      } else if (totalVulns > 0) {
+        badges.push(
+          `<span class="pill warn" style="color: #ff8c00; border-color: #ff8c00;"><i class="fas fa-shield-virus"></i> ${totalVulns} VULN</span>`,
+        );
+        borderStyle = "border-left: 3px solid #ff8c00;";
+      }
+      if (hasOut) {
+        badges.push(
+          `<span class="pill warn"><i class="fas fa-arrow-up"></i> UPDATE</span>`,
+        );
+        if (borderStyle === "") {
+          borderStyle = "border-left: 3px solid var(--warning);";
+        }
+      }
+      if (badges.length === 0) {
+        badges.push(
+          `<span class="pill ok"><i class="fas fa-shield-alt"></i> SECURE</span>`,
+        );
+        borderStyle = "border-left: 3px solid var(--accent);";
+      }
     }
+
+    let statusHtml = `<div style="display: flex; gap: 8px; flex-wrap: wrap;">${badges.join("")}</div>`;
 
     const outHtml = hasOut
       ? repo.outdated
@@ -134,7 +161,7 @@ function render(data) {
             </div>`;
           })
           .join("")
-      : !repo.error
+      : !repo.error && totalVulns === 0
         ? `<div style="text-align:center; padding:15px; color:var(--accent); opacity:0.3; letter-spacing:1px;">
            <i class="fas fa-check-circle" style="font-size:1.5em; margin-bottom:5px"></i><br>
            SYSTEM UP-TO-DATE
@@ -166,59 +193,25 @@ function render(data) {
                 const klass = sevClass(sev);
                 const id = v.id ? `<code>${v.id}</code>` : ``;
 
-                let sourcesHtml = "";
-                const sources = Array.isArray(v.source) ? v.source : ["Audit"]; // Fallback
-                if (sources.length > 0) {
-                  sourcesHtml =
-                    `<span class="source-tags">` +
-                    sources
-                      .map((s) => {
-                        if (s === "Audit")
-                          return `<span class="tag-src src-audit"><i class="fas fa-microchip"></i> NATIVO</span>`;
-                        if (s === "OSV")
-                          return `<span class="tag-src src-osv"><i class="fas fa-satellite-dish"></i> OSV</span>`;
-                        return ``;
-                      })
-                      .join("") +
-                    `</span>`;
-                }
-
-                let infoUrl = `https://google.com/search?q=${v.id || v.module}`;
-                if (v.id) {
-                  if (v.id.startsWith("GHSA")) {
-                    infoUrl = `https://github.com/advisories/${v.id}`;
-                  } else if (v.id.startsWith("CVE")) {
-                    infoUrl = `https://nvd.nist.gov/vuln/detail/${v.id}`;
-                  } else if (v.id !== "NPM-AUDIT") {
-                    infoUrl = `https://osv.dev/vulnerability/${v.id}`;
-                  }
-                }
-
                 return `
                 <div class="vuln">
                   <div class="vuln-title">
-                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 5px;">
+                    <div>
                       <span class="pill ${klass}">${sevLabel(sev)}</span>
-                      <strong style="margin-left:5px; color:#fff; font-size:1.05rem;">${v.module}</strong>
-                      ${sourcesHtml}
+                      <strong style="margin-left:5px; color:#fff">${v.module}</strong>
                     </div>
                     <div class="vuln-meta"><span>${id}</span></div>
                   </div>
-                  <div style="font-size:0.85rem; opacity:0.8; margin-bottom:8px; line-height: 1.4;">
+                  <div style="font-size:0.85rem; opacity:0.8; margin-bottom:5px;">
                     ${v.title || "Vulnerabilidade Detectada"}
                   </div>
-                  <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 5px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px;">
-                      ${
-                        v.recommendation
-                          ? `<div style="font-size:0.8rem; color:var(--accent); max-width: 70%;">
-                            <i class="fas fa-wrench"></i> ${v.recommendation}
-                          </div>`
-                          : "<div></div>"
-                      }
-                      <a href="${infoUrl}" target="_blank" class="vuln-link" title="Analisar Threat Intel">
-                          <i class="fas fa-crosshairs"></i> Intel
-                      </a>
-                  </div>
+                  ${
+                    v.recommendation
+                      ? `<div style="font-size:0.8rem; color:var(--accent);">
+                    <i class="fas fa-wrench"></i> ${v.recommendation}
+                  </div>`
+                      : ""
+                  }
                 </div>`;
               })
               .join("")}
@@ -232,20 +225,14 @@ function render(data) {
     card.style = borderStyle;
 
     const managerIcon =
-      repo.manager === "yarn" || repo.manager === "yarn_berry"
+      repo.manager === "yarn"
         ? "fa-yarn"
         : repo.manager === "npm"
           ? "fa-npm"
           : "fa-code";
-
-    const versionBadge =
-      repo.manager === "yarn_berry"
-        ? `<span style="font-size:0.6em; opacity:0.6; margin-left:2px">v4+</span>`
-        : "";
-
     const displayManager =
       repo.manager !== "unknown"
-        ? `<i class="fab ${managerIcon}" style="font-size:0.8em; opacity:0.5; margin-left:5px"></i>${versionBadge}`
+        ? `<i class="fab ${managerIcon}" style="font-size:0.8em; opacity:0.5; margin-left:5px"></i>`
         : "";
 
     card.innerHTML = `

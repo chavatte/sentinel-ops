@@ -35,7 +35,7 @@ _____________|','   ///_/-------------/   |                 \_/_________________
 
 [![Portuguese Version](https://img.shields.io/badge/Leia_em-Português-green?style=for-the-badge)](README.pt-br.md)
 
-![Version](https://img.shields.io/badge/version-1.1.4-00ff41?style=for-the-badge&logo=security)
+![Version](https://img.shields.io/badge/version-1.1.6-00ff41?style=for-the-badge&logo=security)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)
 
