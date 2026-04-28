@@ -34,7 +34,7 @@ _____________|','   ///_/-------------/   |                 \_/_________________
 
 > **Chavatte Security Operations Center** > Monitor de Vulnerabilidades e Dependências Universal para Projetos Node.js
 
-![Version](https://img.shields.io/badge/version-1.1.4-00ff41?style=for-the-badge&logo=security)
+![Version](https://img.shields.io/badge/version-1.1.6-00ff41?style=for-the-badge&logo=security)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)
 
@@ -166,7 +166,7 @@ Se quiser rodar fora do Docker ou contribuir com o código:
 ---
 
 ## 📸 Screenshots
-
+<img src="./assets/desktop.png" alt="Dashboard Desktop"> 
 | **Dashboard Desktop**                                  |
 | ------------------------------------------------------------ |
 | <img src="./assets/desktop.png" alt="Dashboard Desktop">   |
@@ -188,7 +188,7 @@ Consulte o arquivo `LICENSE` para mais detalhes.
 
 <div align="center">
 
-`<b>`CHAVATTE SECURITY`</b>`
+<b>CHAVATTE SECURITY</b>
 
 Desenvolvido por <a href="https://github.com/chavatte">DevChavatte</a>
 
