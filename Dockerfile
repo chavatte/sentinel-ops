@@ -1,8 +1,8 @@
-FROM python:3.12-alpine
+FROM python:3.14-alpine
 
-RUN apk upgrade --no-cache && \
+RUN apk upgrade --no-cache --available && \
     apk add --no-cache git openssh npm nodejs curl && \
-    npm install -g corepack && \
+    npm install -g npm@latest corepack && \
     corepack enable && \
     curl -L https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o /usr/local/bin/osv-scanner && \
     chmod +x /usr/local/bin/osv-scanner

@@ -10,6 +10,7 @@ function getBumpClass(bump) {
   if (bump === "minor") return "warn";
   return "muted";
 }
+
 function bumpLabel(b) {
   return b === "major" ? "MAJOR" : b === "minor" ? "MINOR" : "PATCH";
 }
@@ -111,7 +112,6 @@ function render(data) {
 
     let badges = [];
     let borderStyle = "";
-
     if (repo.error) {
       badges.push(
         `<span class="pill warn"><i class="fas fa-exclamation-triangle"></i> ERROR</span>`,
@@ -129,6 +129,7 @@ function render(data) {
         );
         borderStyle = "border-left: 3px solid #ff8c00;";
       }
+
       if (hasOut) {
         badges.push(
           `<span class="pill warn"><i class="fas fa-arrow-up"></i> UPDATE</span>`,
@@ -137,6 +138,7 @@ function render(data) {
           borderStyle = "border-left: 3px solid var(--warning);";
         }
       }
+
       if (badges.length === 0) {
         badges.push(
           `<span class="pill ok"><i class="fas fa-shield-alt"></i> SECURE</span>`,
@@ -192,19 +194,56 @@ function render(data) {
                 const sev = (v.severity || "unknown").toLowerCase();
                 const klass = sevClass(sev);
                 const id = v.id ? `<code>${v.id}</code>` : ``;
+                let sourceBadges = "";
+                const sources = Array.isArray(v.source)
+                  ? v.source
+                  : [v.source || "unknown"];
+                sources.forEach((sourceRaw) => {
+                  const s = sourceRaw.toLowerCase();
+                  if (s === "osv") {
+                    sourceBadges += `<span class="pill" style="border-color:#8a2be2; color:#8a2be2; font-size:0.6rem; margin-right:4px;"><i class="fas fa-dna"></i> OSV</span>`;
+                  } else if (s === "audit" || s === "native") {
+                    sourceBadges += `<span class="pill" style="border-color:#1e90ff; color:#1e90ff; font-size:0.6rem; margin-right:4px;"><i class="fas fa-cog"></i> NATIVO</span>`;
+                  }
+                });
+
+                let intelUrl = "";
+                if (v.id) {
+                  if (v.id.startsWith("GHSA")) {
+                    intelUrl = `https://github.com/advisories/${v.id}`;
+                  } else if (v.id.startsWith("CVE")) {
+                    intelUrl = `https://nvd.nist.gov/vuln/detail/${v.id}`;
+                  } else {
+                    intelUrl = `https://osv.dev/vulnerability/${v.id}`;
+                  }
+                }
+
+                const intelBtn = intelUrl
+                  ? `<div style="margin-top: 10px;">
+                       <a href="${intelUrl}" target="_blank" style="text-decoration:none;">
+                         <span class="pill" style="border: 1px dashed var(--accent); color: var(--accent); cursor: pointer;">
+                           <i class="fas fa-crosshairs"></i> INTEL
+                         </span>
+                       </a>
+                     </div>`
+                  : "";
 
                 return `
                 <div class="vuln">
-                  <div class="vuln-title">
+                  <div class="vuln-title" style="margin-bottom: 8px;">
                     <div>
                       <span class="pill ${klass}">${sevLabel(sev)}</span>
                       <strong style="margin-left:5px; color:#fff">${v.module}</strong>
                     </div>
-                    <div class="vuln-meta"><span>${id}</span></div>
                   </div>
-                  <div style="font-size:0.85rem; opacity:0.8; margin-bottom:5px;">
+                  
+                  ${sourceBadges ? `<div style="margin-bottom: 8px;">${sourceBadges}</div>` : ""}
+                  
+                  <div style="font-size:0.85rem; opacity:0.8; margin-bottom:8px;">
+                    <div style="margin-bottom: 4px;">${id}</div>
                     ${v.title || "Vulnerabilidade Detectada"}
                   </div>
+                  
                   ${
                     v.recommendation
                       ? `<div style="font-size:0.8rem; color:var(--accent);">
@@ -212,6 +251,8 @@ function render(data) {
                   </div>`
                       : ""
                   }
+                  
+                  ${intelBtn}
                 </div>`;
               })
               .join("")}
@@ -223,16 +264,21 @@ function render(data) {
     const card = document.createElement("div");
     card.className = "card";
     card.style = borderStyle;
-
     const managerIcon =
-      repo.manager === "yarn"
+      repo.manager === "yarn" || repo.manager === "yarn_berry"
         ? "fa-yarn"
         : repo.manager === "npm"
           ? "fa-npm"
           : "fa-code";
+
+    const versionBadge =
+      repo.manager === "yarn_berry"
+        ? `<span style="font-size:0.6em; opacity:0.6; margin-left:2px">v4+</span>`
+        : "";
+
     const displayManager =
       repo.manager !== "unknown"
-        ? `<i class="fab ${managerIcon}" style="font-size:0.8em; opacity:0.5; margin-left:5px"></i>`
+        ? `<i class="fab ${managerIcon}" style="font-size:0.8em; opacity:0.5; margin-left:5px"></i>${versionBadge}`
         : "";
 
     card.innerHTML = `
@@ -298,4 +344,107 @@ async function triggerScan() {
 }
 
 btn.addEventListener("click", triggerScan);
+
+const btnReport = document.getElementById("btn-report");
+let lastData = null;
+
+async function loadStatus() {
+  try {
+    const data = await apiGetStatus();
+    lastData = data;
+    render(data);
+
+    if (data && data.results && data.results.length > 0) {
+      btnReport.style.display = "flex";
+    }
+
+    return data;
+  } catch (e) {
+    if (!isScanning) {
+      meta.innerHTML = '<span class="text-bad">:: CONNECTION LOST ::</span>';
+    }
+  }
+}
+
+function generateMarkdownReport() {
+  if (!lastData || !lastData.results) return;
+
+  const date = new Date(lastData.generated_at * 1000).toLocaleString("pt-BR");
+
+  let md = `# 🛡️ Sentinel Ops - Threat Intelligence Report\n`;
+  md += `> **Generated at:** ${date} | **System:** Chavatte Security Operations Center\n\n`;
+  md += `--- \n\n`;
+  md += `## 📊 Executive Summary (Blue Team & DevSecOps)\n`;
+
+  const totalRepos = lastData.results.length;
+  const vulnerableRepos = lastData.results.filter(
+    (r) => r.audit_items && r.audit_items.length > 0,
+  ).length;
+  const outdatedRepos = lastData.results.filter(
+    (r) => r.outdated && r.outdated.length > 0,
+  ).length;
+
+  md += `- **Total Repositories Scanned:** ${totalRepos}\n`;
+  md += `- **Repositories with Threats:** ${vulnerableRepos}\n`;
+  md += `- **Repositories with Technical Debt (Updates):** ${outdatedRepos}\n\n`;
+
+  md += `--- \n\n`;
+  md += `## 🎯 Threat Matrix (Red Team Exploitation Map)\n\n`;
+
+  lastData.results.forEach((repo) => {
+    const vulns = repo.audit_items || [];
+    const outds = repo.outdated || [];
+
+    if (vulns.length === 0 && outds.length === 0) return;
+
+    md += `### 📁 [${repo.name}]\n`;
+
+    if (vulns.length > 0) {
+      md += `#### 🚨 Active Vulnerabilities (${vulns.length})\n`;
+      vulns.forEach((v) => {
+        const sev = (v.severity || "unknown").toUpperCase();
+        const id = v.id || "Unknown ID";
+        let intelUrl = "";
+        if (id.startsWith("GHSA"))
+          intelUrl = `https://github.com/advisories/${id}`;
+        else if (id.startsWith("CVE"))
+          intelUrl = `https://nvd.nist.gov/vuln/detail/${id}`;
+        else intelUrl = `https://osv.dev/vulnerability/${id}`;
+
+        md += `- **[${sev}]** \`${v.module}\` - ${v.title}\n`;
+        md += `  - **ID:** ${id}\n`;
+        if (v.source) md += `  - **Source:** ${v.source.join(", ")}\n`;
+        md += `  - **Intel:** [Read Mitigation Report](${intelUrl})\n`;
+      });
+      md += `\n`;
+    }
+
+    if (outds.length > 0) {
+      md += `#### ⚠️ Outdated Packages (${outds.length})\n`;
+      md += `| Package | Current | Latest | Bump |\n`;
+      md += `|---|---|---|---|\n`;
+      outds.forEach((p) => {
+        const bumpEmote =
+          p.bump === "major" ? "🔴" : p.bump === "minor" ? "🟠" : "🟡";
+        md += `| \`${p.name}\` | ${p.current} | ${p.latest} | ${bumpEmote} ${p.bump.toUpperCase()} |\n`;
+      });
+      md += `\n`;
+    }
+
+    md += `---\n\n`;
+  });
+
+  const blob = new Blob([md], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Sentinel_Threat_Intel_${new Date().toISOString().split("T")[0]}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+if (btnReport) btnReport.addEventListener("click", generateMarkdownReport);
+
 loadStatus();
