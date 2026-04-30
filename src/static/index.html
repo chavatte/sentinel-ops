@@ -1,44 +1,85 @@
 <!doctype html>
 <html lang="pt-br">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SENTINEL OPS | CHAVATTE SECURITY</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="css/main.css" rel="stylesheet" />
-</head>
-<body>
-  <div class="main-content">
-    <div class="header-row">
-      <div class="header-title-group">
-        <h1>
-          <i class="fas fa-shield-halved"></i> SENTINEL OPS
-          <span class="corp-name">// CHAVATTE SECURITY OPERATIONS</span>
-        </h1>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SENTINEL OPS | CHAVATTE SECURITY</title>
+    <link rel="icon" type="image/png" href="assets/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link href="css/main.css" rel="stylesheet" />
+  </head>
+
+  <body>
+    <div class="bg-glow"></div>
+    <div class="main-content">
+      <div class="header-row">
+        <div class="header-title-group">
+          <h1>
+            <i class="fas fa-shield-halved"></i> SENTINEL OPS
+            <span class="corp-name"
+              >// CHAVATTE SECURITY OPERATIONS CENTER</span
+            >
+          </h1>
+        </div>
+        <span id="meta" class="meta-info">SYSTEM: INITIALIZING...</span>
+        <div style="display: flex; gap: 10px">
+          <button
+            id="btn-report"
+            style="border-color: #ff8c00; color: #ff8c00; display: none"
+          >
+            <i class="fas fa-file-export"></i>
+            <span style="margin-left: 5px">REPORT</span>
+          </button>
+          <button id="btn">
+            <i class="fas fa-terminal"></i>
+            <span style="margin-left: 5px">EXEC_CHECK</span
+            ><span class="cursor-blink">_</span>
+          </button>
+        </div>
       </div>
-      <span id="meta" class="meta-info">SYSTEM: INITIALIZING...</span>
+      <div id="grid" class="grid">
+        <div
+          style="
+            color: var(--accent);
+            text-align: center;
+            margin-top: 50px;
+            grid-column: 1/-1;
+            opacity: 0.7;
+          "
+        >
+          <i
+            class="fas fa-circle-notch fa-spin fa-2x"
+            style="margin-bottom: 15px"
+          ></i
+          ><br />
+          Carregando módulos do sistema...
+        </div>
+      </div>
+    </div>
+    <footer>
+      <div class="footer-brand">
+        <i class="fas fa-lock"></i> CHAVATTE SECURITY
+      </div>
       <div>
-        <button id="btn"><i class="fas fa-sync-alt"></i> EXEC_CHECK</button>
+        <span style="opacity: 0.5">[SYS_VERSION]</span>
+        <strong style="color: var(--accent)">1.1.13</strong>
       </div>
-    </div>
-    <div id="grid" class="grid">
-      <div style="color: var(--dim); text-align: center; margin-top: 50px; grid-column: 1/-1;">
-        <i class="fas fa-terminal"></i> Carregando módulos do sistema...
+      <div class="footer-dev">
+        CODE BY
+        <a href="https://chavatte.vercel.app/" onclick="return false;"
+          >@DEVCHAVATTE</a
+        >
       </div>
-    </div>
-  </div>
-  <footer>
-    <div class="footer-brand">
-      <i class="fas fa-lock"></i> CHAVATTE SECURITY
-    </div>
-    <div>
-      SENTINEL OPS [VERSION 1.1.6]
-    </div>
-    <div class="footer-dev">
-      CODE BY <a href="https://chavatte.vercel.app/" onclick="return false;">@DEVCHAVATTE</a>
-    </div>
-  </footer>
-  <script src="js/main.js?v=1.1.6"></script>
-</body>
+    </footer>
+    <script src="js/main.js?v=1.1.13"></script>
+  </body>
 </html>
