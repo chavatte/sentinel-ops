@@ -1,17 +1,31 @@
 import json
+import re
+
 
 def get_bump_type(current, latest):
-    if not current or not latest or current == "?":
+    if not current or not latest or current == "?" or latest == "?":
         return "unknown"
-    c = current.split(".")
-    l = latest.split(".")
-    if len(c) < 1 or len(l) < 1:
+
+    def extract_version(v):
+        match = re.search(r"(\d+)\.(\d+)(?:\.(\d+))?", str(v))
+        if match:
+            groups = match.groups()
+            return [int(groups[0]), int(groups[1]), int(groups[2]) if groups[2] else 0]
+        return None
+
+    curr = extract_version(current)
+    lat = extract_version(latest)
+
+    if not curr or not lat:
         return "unknown"
-    if c[0] != l[0]:
+
+    if lat[0] > curr[0]:
         return "major"
-    if len(c) > 1 and len(l) > 1 and c[1] != l[1]:
+    if lat[1] > curr[1]:
         return "minor"
+
     return "patch"
+
 
 def add_audit_item(result, adv, seen_set, path=None):
     adv_id = adv.get("github_advisory_id") or adv.get("id")
@@ -35,6 +49,7 @@ def add_audit_item(result, adv, seen_set, path=None):
         elif severity == "critical":
             result["audit"]["critical"] += 1
 
+
 def parse_yarn_outdated(output, result):
     try:
         for line in output.splitlines():
@@ -55,6 +70,7 @@ def parse_yarn_outdated(output, result):
     except:
         pass
 
+
 def parse_yarn_audit(output, result):
     seen = set()
     try:
@@ -74,20 +90,32 @@ def parse_yarn_audit(output, result):
     except:
         pass
 
+
 def parse_npm_outdated(output, result):
     try:
         data = json.loads(output)
+        if not isinstance(data, dict):
+            return
         for pkg, info in data.items():
+            if not isinstance(info, dict):
+                continue
+            current_ver = info.get("current")
+            if not current_ver:
+                current_ver = info.get("wanted", "?")
+
+            latest_ver = info.get("latest", "?")
+
             result["outdated"].append(
                 {
                     "name": pkg,
-                    "current": info.get("current", "?"),
-                    "latest": info.get("latest", "?"),
-                    "bump": get_bump_type(info.get("current"), info.get("latest")),
+                    "current": current_ver,
+                    "latest": latest_ver,
+                    "bump": get_bump_type(current_ver, latest_ver),
                 }
             )
     except:
         pass
+
 
 def parse_npm_audit_tree(vulns_dict, result):
     seen = set()
@@ -126,6 +154,7 @@ def parse_npm_audit_tree(vulns_dict, result):
         elif severity == "critical":
             result["audit"]["critical"] += 1
 
+
 def parse_pnpm_audit(output, result):
     try:
         data = json.loads(output)
@@ -138,6 +167,7 @@ def parse_pnpm_audit(output, result):
     except:
         pass
 
+
 def parse_yarn_berry_outdated(output, result):
     try:
         json_str = "{}"
@@ -146,9 +176,9 @@ def parse_yarn_berry_outdated(output, result):
             if line.startswith("{") or line.startswith("["):
                 json_str = line
                 break
-        
+
         data = json.loads(json_str)
-        
+
         if isinstance(data, dict):
             for pkg, info in data.items():
                 result["outdated"].append(
@@ -172,6 +202,7 @@ def parse_yarn_berry_outdated(output, result):
     except Exception as e:
         pass
 
+
 def parse_yarn_berry_audit(output, result):
     seen = set()
     try:
@@ -181,27 +212,29 @@ def parse_yarn_berry_audit(output, result):
                 continue
             try:
                 data = json.loads(line)
-                
+
                 if "vulnerabilities" in data:
                     parse_npm_audit_tree(data["vulnerabilities"], result)
-                
+
                 elif "advisories" in data:
                     for _, adv in data["advisories"].items():
                         add_audit_item(result, adv, seen)
-                        
+
                 elif "advisory" in data:
                     add_audit_item(result, data["advisory"], seen)
             except:
                 continue
     except Exception as e:
         pass
-    
+
+
 def parse_osv_audit(output, result):
     output = output.strip()
-    if not output: return
-        
-    if not output.startswith('{'):
-        start_idx = output.find('{')
+    if not output:
+        return
+
+    if not output.startswith("{"):
+        start_idx = output.find("{")
         if start_idx != -1:
             output = output[start_idx:]
         else:
@@ -214,43 +247,55 @@ def parse_osv_audit(output, result):
                 pkg_name = pkg.get("package", {}).get("name", "Unknown")
                 for vuln in pkg.get("vulnerabilities", []):
                     vuln_id = vuln.get("id")
-                    if not vuln_id: continue
-                    
-                    existing_item = next((item for item in result.get("audit_items", []) if item.get("id") == vuln_id), None)
-                    
+                    if not vuln_id:
+                        continue
+
+                    existing_item = next(
+                        (
+                            item
+                            for item in result.get("audit_items", [])
+                            if item.get("id") == vuln_id
+                        ),
+                        None,
+                    )
+
                     if existing_item:
                         if "source" not in existing_item:
                             existing_item["source"] = ["Audit"]
                         if "OSV" not in existing_item["source"]:
                             existing_item["source"].append("OSV")
                         continue
-                        
+
                     severity = "moderate"
                     db_specific = vuln.get("database_specific", {})
                     if "severity" in db_specific:
                         sev = str(db_specific["severity"]).lower()
                         if sev in ["low", "moderate", "high", "critical"]:
                             severity = sev
-                            
-                    summary = vuln.get("summary") or vuln.get("details", "Vulnerabilidade descoberta pelo OSV")
+
+                    summary = vuln.get("summary") or vuln.get(
+                        "details", "Vulnerabilidade descoberta pelo OSV"
+                    )
                     if summary and len(summary) > 100:
                         summary = summary[:97] + "..."
-                        
-                    result["audit_items"].append({
-                        "id": vuln_id,
-                        "severity": severity,
-                        "module": pkg_name,
-                        "title": summary,
-                        "cves": vuln.get("aliases", []),
-                        "recommendation": "Verifique documentação CVE/GHSA para mitigações.",
-                        "paths": [],
-                        "source": ["OSV"]
-                    })
-                    
+
+                    result["audit_items"].append(
+                        {
+                            "id": vuln_id,
+                            "severity": severity,
+                            "module": pkg_name,
+                            "title": summary,
+                            "cves": vuln.get("aliases", []),
+                            "recommendation": "Verifique documentação CVE/GHSA para mitigações.",
+                            "paths": [],
+                            "source": ["OSV"],
+                        }
+                    )
+
                     if severity == "high":
                         result["audit"]["high"] += 1
                     elif severity == "critical":
                         result["audit"]["critical"] += 1
-                        
+
     except Exception as e:
         print(f"⚠️ Erro ao fazer parse do JSON do OSV: {e}")

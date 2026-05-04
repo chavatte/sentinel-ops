@@ -1,10 +1,20 @@
 import os
+import stat
 import shutil
 import time
 import subprocess
 import json
 from config import DATA_DIR, SSH_DIR
 import parsers
+
+
+def remove_readonly(func, path, exc):
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
+def get_cmd(name):
+    return f"{name}.cmd" if os.name == "nt" else name
 
 
 class RepoAuditor:
@@ -75,12 +85,12 @@ class RepoAuditor:
             safe_key = self._prepare_ssh_key()
 
             if os.path.exists(self.work_dir):
-                shutil.rmtree(self.work_dir)
+                shutil.rmtree(self.work_dir, onexc=remove_readonly)
             os.makedirs(self.work_dir, exist_ok=True)
 
             env = os.environ.copy()
             env["GIT_SSH_COMMAND"] = self._get_ssh_command(safe_key)
-            env["CI"] = "true" 
+            env["CI"] = "true"
             env["YARN_ENABLE_TELEMETRY"] = "0"
 
             self._exec(["git", "init", "-q"], self.work_dir, env)
@@ -91,15 +101,17 @@ class RepoAuditor:
 
             git_info = os.path.join(self.work_dir, ".git/info")
             os.makedirs(git_info, exist_ok=True)
-            
+
             with open(os.path.join(git_info, "sparse-checkout"), "w") as f:
-                f.write("package.json\nyarn.lock\n.yarnrc.yml\n.yarn/releases/\n.yarn/plugins/\npackage-lock.json\npnpm-lock.yaml\n")
+                f.write(
+                    "package.json\nyarn.lock\n.yarnrc.yml\n.yarn/releases/\n.yarn/plugins/\npackage-lock.json\npnpm-lock.yaml\n"
+                )
 
             self._exec(
                 ["git", "fetch", "--depth=1", "origin", "HEAD"], self.work_dir, env
             )
             self._exec(["git", "checkout", "FETCH_HEAD"], self.work_dir, env)
-            
+
             os.makedirs(os.path.join(self.work_dir, ".yarn", "releases"), exist_ok=True)
             os.makedirs(os.path.join(self.work_dir, ".yarn", "plugins"), exist_ok=True)
 
@@ -118,90 +130,126 @@ class RepoAuditor:
                 self.manager = "pnpm"
             else:
                 self.manager = "npm"
-                
+
             result["manager"] = self.manager
-            
+
             if self.manager == "yarn_berry":
                 proc_ver = subprocess.run(
-                    ["yarn", "--version"], 
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("yarn"), "--version"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 yarn_version = proc_ver.stdout.strip()
-                
+
                 major_version = 4
                 if yarn_version and "." in yarn_version:
                     try:
                         major_version = int(yarn_version.split(".")[0])
                     except:
                         pass
-                
-                print(f"[{self.name}] Detetado Yarn v{yarn_version}. Preparando ambiente...")
+
+                print(
+                    f"[{self.name}] Detetado Yarn v{yarn_version}. Preparando ambiente..."
+                )
 
                 plugin_url = f"https://go.mskelton.dev/yarn-outdated/v{major_version}"
-                
+
                 self._exec(
-                    ["yarn", "plugin", "import", plugin_url],
-                    self.work_dir, env
+                    [get_cmd("yarn"), "plugin", "import", plugin_url],
+                    self.work_dir,
+                    env,
                 )
-                
-                print(f"[{self.name}] Analisando pacotes desatualizados (Yarn Berry)...")
+
+                print(
+                    f"[{self.name}] Analisando pacotes desatualizados (Yarn Berry)..."
+                )
                 proc_out = subprocess.run(
-                    ["yarn", "outdated", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("yarn"), "outdated", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 parsers.parse_yarn_berry_outdated(proc_out.stdout, result)
 
                 print(f"[{self.name}] Auditando vulnerabilidades (Yarn Berry)...")
                 proc_audit = subprocess.run(
-                    ["yarn", "npm", "audit", "--all", "--recursive", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("yarn"), "npm", "audit", "--all", "--recursive", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 parsers.parse_yarn_berry_audit(proc_audit.stdout, result)
 
             elif self.manager == "yarn":
-                print(f"[{self.name}] Analisando pacotes desatualizados (Yarn Clássico)...")
+                print(
+                    f"[{self.name}] Analisando pacotes desatualizados (Yarn Clássico)..."
+                )
                 proc_out = subprocess.run(
-                    ["yarn", "outdated", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("yarn"), "outdated", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 parsers.parse_yarn_outdated(proc_out.stdout, result)
-                
+
                 print(f"[{self.name}] Auditando vulnerabilidades (Yarn Clássico)...")
                 proc_audit = subprocess.run(
-                    ["yarn", "audit", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("yarn"), "audit", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 parsers.parse_yarn_audit(proc_audit.stdout, result)
 
             elif self.manager == "pnpm":
-                self._exec(["corepack", "use", "pnpm@latest"], self.work_dir, env)
-                
+                self._exec(
+                    [get_cmd("corepack"), "use", "pnpm@latest"], self.work_dir, env
+                )
+
                 print(f"[{self.name}] Analisando pacotes desatualizados (PNPM)...")
                 proc_out = subprocess.run(
-                    ["pnpm", "outdated", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("pnpm"), "outdated", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 parsers.parse_npm_outdated(proc_out.stdout, result)
-                
+
                 print(f"[{self.name}] Auditando vulnerabilidades (PNPM)...")
                 proc_audit = subprocess.run(
-                    ["pnpm", "audit", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("pnpm"), "audit", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 parsers.parse_pnpm_audit(proc_audit.stdout, result)
 
             else:
                 print(f"[{self.name}] Analisando pacotes desatualizados (NPM)...")
                 proc_out = subprocess.run(
-                    ["npm", "outdated", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("npm"), "outdated", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 parsers.parse_npm_outdated(proc_out.stdout, result)
-                
+
                 print(f"[{self.name}] Auditando vulnerabilidades (NPM)...")
                 proc_audit = subprocess.run(
-                    ["npm", "audit", "--json"],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    [get_cmd("npm"), "audit", "--json"],
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
                 try:
                     parsers.parse_npm_audit_tree(
@@ -209,26 +257,84 @@ class RepoAuditor:
                     )
                 except:
                     pass
-                
+
             print(f"[{self.name}] Realizando varredura avançada com OSV-Scanner...")
             lockfile_map = {
                 "yarn": "yarn.lock",
                 "yarn_berry": "yarn.lock",
                 "pnpm": "pnpm-lock.yaml",
-                "npm": "package-lock.json"
+                "npm": "package-lock.json",
             }
-            
+
             target_lockfile = lockfile_map.get(self.manager)
-            if target_lockfile and os.path.exists(os.path.join(self.work_dir, target_lockfile)):
+            if target_lockfile and os.path.exists(
+                os.path.join(self.work_dir, target_lockfile)
+            ):
                 proc_osv = subprocess.run(
                     ["osv-scanner", "--format", "json", "--lockfile", target_lockfile],
-                    cwd=self.work_dir, capture_output=True, text=True, env=env
+                    cwd=self.work_dir,
+                    capture_output=True,
+                    text=True,
+                    env=env,
                 )
-                
+
                 if not proc_osv.stdout.strip() and proc_osv.stderr.strip():
-                    print(f"[{self.name}] ⚠️ OSV-Scanner falhou: {proc_osv.stderr.strip()}")
-                    
+                    print(
+                        f"[{self.name}] ⚠️ OSV-Scanner falhou: {proc_osv.stderr.strip()}"
+                    )
+
                 parsers.parse_osv_audit(proc_osv.stdout, result)
+
+            seen_modules = {}
+
+            for v in result.get("audit_items", []):
+                module_name = v.get("module", "unknown")
+
+                new_sources = v.get("source", [])
+                if isinstance(new_sources, str):
+                    new_sources = [new_sources]
+                elif not new_sources:
+                    new_sources = ["unknown"]
+
+                if module_name in seen_modules:
+                    existing = seen_modules[module_name]
+
+                    for src in new_sources:
+                        if src not in existing["source"]:
+                            existing["source"].append(src)
+
+                    sev_levels = {
+                        "critical": 4,
+                        "high": 3,
+                        "moderate": 2,
+                        "low": 1,
+                        "unknown": 0,
+                    }
+                    curr_sev = existing.get("severity", "unknown").lower()
+                    new_sev = v.get("severity", "unknown").lower()
+
+                    if sev_levels.get(new_sev, 0) > sev_levels.get(curr_sev, 0):
+                        existing["severity"] = new_sev
+                        existing["id"] = v.get("id", existing.get("id"))
+                        existing["title"] = v.get("title", existing.get("title"))
+                        existing["recommendation"] = v.get(
+                            "recommendation", existing.get("recommendation")
+                        )
+                else:
+                    v["source"] = new_sources
+                    if "cves" not in v:
+                        v["cves"] = []
+                    seen_modules[module_name] = v
+
+            deduped_vulns = list(seen_modules.values())
+            result["audit_items"] = deduped_vulns
+
+            result["audit"]["high"] = sum(
+                1 for v in deduped_vulns if v.get("severity", "").lower() == "high"
+            )
+            result["audit"]["critical"] = sum(
+                1 for v in deduped_vulns if v.get("severity", "").lower() == "critical"
+            )
 
             result["ok"] = (
                 result["audit"]["high"] == 0 and result["audit"]["critical"] == 0
@@ -239,7 +345,8 @@ class RepoAuditor:
             print(f"Erro em {self.name}: {e}")
 
         if os.path.exists(self.work_dir):
-            shutil.rmtree(self.work_dir)
+            shutil.rmtree(self.work_dir, onexc=remove_readonly)
+
         if safe_key and os.path.exists(safe_key):
             try:
                 os.remove(safe_key)

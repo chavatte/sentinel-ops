@@ -1,0 +1,11 @@
+:root {
+  --bg-color: #030406;
+  --card-bg: rgba(10, 15, 13, 0.75);
+  --text-main: #e0e0e0;
+  --accent: #00ff41;
+  --accent-glow: rgba(0, 255, 65, 0.5);
+  --warning: #ffb000;
+  --danger: #ff3333;
+  --dim: #555;
+  --border: 1px solid rgba(255, 255, 255, 0.1);
+}

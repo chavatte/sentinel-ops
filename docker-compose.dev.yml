@@ -1,7 +1,7 @@
 services:
   sentinel-ops:
     container_name: sentinel-ops
-    image: chavatte/sentinel-ops:latest
+    image: chavatte/sentinel-ops:dev
     build: .
     restart: unless-stopped
     ports:
@@ -13,7 +13,6 @@ services:
       - SCAN_INTERVAL=21600
       - TZ=America/Sao_Paulo
     volumes:
-      - ./config/repos.yml:/config/repos.yml:ro
       - ./ssh:/ssh:ro
       - sentinel_data:/data
 

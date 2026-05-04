@@ -18,7 +18,7 @@ _____________,'      ,',_____|      |    | |              \ |      Portfolio Cha
              |   ,','    ____|_____/    /  |                |    ________________________________________|___
              | ,','  __/ |             /   |                |  /                                            /
 _____________|','   ///_/-------------/   |                 \_/____________________________________________/ 
-              |===========,'                                
+              |===========,'                              
 			  
 
 </pre>
@@ -29,14 +29,14 @@ _____________|','   ///_/-------------/   |                 \_/_________________
 
 # 🛡️ Sentinel Ops
 
-> **Chavatte Security Operations Center** <br>
+> **Chavatte Security Operations Center**
 > Monitor de Ameaças e Vulnerabilidades Avançado para Ecossistemas Node.js
 
-![Version](https://img.shields.io/badge/version-1.1.13-00ff41?style=for-the-badge&logo=security)
+![Version](https://img.shields.io/badge/version-2.0.0-00ff41?style=for-the-badge&logo=security)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-orange?style=for-the-badge)
 
-O **Sentinel Ops** é uma ferramenta de Inteligência de Ameaças (Threat Intelligence) e auditoria de segurança contínua projetada para Home Labs, servidores CasaOS e equipes de DevSecOps. Ele monitora automaticamente seus repositórios Git, verifica árvores de dependências e alerta sobre vulnerabilidades de segurança (CVEs/GHSAs) através de um HUD Cyberpunk responsivo.
+O **Sentinel Ops** é uma ferramenta de Inteligência de Ameaças (Threat Intelligence) e auditoria de segurança contínua projetada para Home Labs, servidores CasaOS e equipes de DevSecOps. Ele monitora repositórios Git, verifica árvores de dependências, rastreia débitos técnicos e alerta sobre vulnerabilidades (CVEs/GHSAs) através de um HUD Cyberpunk interativo.
 
 </div>
 
@@ -44,12 +44,13 @@ O **Sentinel Ops** é uma ferramenta de Inteligência de Ameaças (Threat Intell
 
 ## ✨ Principais Funcionalidades
 
+* **🗄️ Configuração Dinâmica (UI & SQLite):** Diga adeus aos arquivos YAML. Gerencie repositórios, ative/desative scans e mantenha o histórico de ameaças diretamente pela Interface Web (`SYS_CONFIG`).
+* **📊 Threat Analytics:** Visualização de dados interativa (via ApexCharts) monitorando MTTR (Mean Time To Resolve), Distribuição de Severidade e Projetos de Alto Risco.
 * **🕵️‍♂️ Compatibilidade Universal:** Detecta e audita de forma transparente ambientes **NPM**, **Yarn (Clássico e Berry v4+)** e **PNPM**.
-* **🌐 Integração OSV-Scanner:** Realiza varreduras profundas e complementares usando o banco de dados `OSV.dev` do Google, capturando ameaças que escapam das auditorias nativas dos gerenciadores de pacotes.
-* **🎯 Threat Intel Dinâmico:** Os cards de vulnerabilidade geram automaticamente links clicáveis para relatórios oficiais de mitigação (NIST NVD, GitHub Advisories, OSV).
-* **📄 Exportação de Relatório de Ameaças:** Geração instantânea de relatórios táticos em formato Markdown (`.md`), contendo um Resumo Executivo e um Mapa de Exploração para facilitar o trabalho das equipes de Red/Blue Team.
-* **⚡ Ultra Rápido (Sparse Checkout):** Não clona o repositório inteiro. Baixa apenas os arquivos de manifesto (`package.json`, `lockfiles`) com segurança para uma memória isolada.
-* **🖥️ HUD Cyberpunk (UI/UX):** Dashboard visual em tempo real com efeitos de Glassmorphism, telemetria *Dual-Badge* e ordenação inteligente baseada em níveis de risco.
+* **🌐 Integração OSV-Scanner:** Realiza varreduras profundas usando o banco de dados `OSV.dev` do Google, capturando ameaças ignoradas pelas auditorias nativas.
+* **🎯 Threat Intel Dinâmico:** Links gerados automaticamente para relatórios oficiais de mitigação (NIST NVD, GitHub Advisories, OSV).
+* **📄 Exportação de Relatório:** Geração instantânea de relatórios táticos em formato Markdown (`.md`) para facilitar o trabalho das equipes de Red/Blue Team.
+* **⚡ Ultra Rápido (Sparse Checkout):** Não clona o repositório inteiro. Baixa apenas os manifestos (`package.json`, `lockfiles`) isolados na memória.
 * **🔑 Suporte Híbrido:** Funciona nativamente com repositórios privados (via SSH) e públicos (via HTTPS).
 
 ---
@@ -63,11 +64,8 @@ Crie uma pasta para o projeto e dentro dela a seguinte estrutura:
 ```text
 /sentinel-ops
 ├── docker-compose.yml
-├── ssh/                # (Opcional) Suas chaves SSH privadas
-└── config/
-    └── repos.yml       # Lista de repositórios
+└── ssh/                # (Opcional) Suas chaves SSH privadas
 ```
-
 
 ### 2. Configuração (`docker-compose.yml`)
 
@@ -89,35 +87,14 @@ services:
       - SCAN_INTERVAL=21600 # Tempo em segundos (6 horas)
       - TZ=America/Sao_Paulo
     volumes:
-      - ./config/repos.yml:/config/repos.yml:ro
       - ./ssh:/ssh:ro
-      - sentinel_data:/data
+      - sentinel_data:/data # O banco SQLite fica salvo aqui
 
 volumes:
   sentinel_data:
 ```
 
-### 3. Definindo os Repositórios (`config/repos.yml`)
-
-Você pode misturar repositórios privados e públicos dinamicamente.
-
-**YAML**
-
-```
-repos:
-  # 🔐 Repositório Privado (Exige chave na pasta ./ssh)
-  - id: meu-saas
-    name: "Meu SaaS Privado"
-    git: git@github.com:usuario/projeto-secreto.git
-    ssh_key: /ssh/id_rsa
-
-  # 🌍 Repositório Público (Não precisa de chave)
-  - id: react-core
-    name: "React (Open Source)"
-    git: https://github.com/facebook/react.git
-```
-
-### 4. Executando
+### 3. Executando e Configurando
 
 **Bash**
 
@@ -125,7 +102,9 @@ repos:
 docker-compose up -d
 ```
 
-Acesse o seu Dashboard SecOps em: `http://localhost:9393`
+1. Acesse o seu Dashboard SecOps em: `http://localhost:9393`
+2. Clique no botão **`SYS_CONFIG`** no painel superior.
+3. Cadastre os repositórios diretamente pela interface (Não é mais necessário editar arquivos YAML).
 
 ---
 
@@ -134,9 +113,9 @@ Acesse o seu Dashboard SecOps em: `http://localhost:9393`
 Como uma ferramenta focada em segurança cibernética, o Sentinel Ops mantém rigorosa transparência sobre a sua própria cadeia de suprimentos ( *Supply Chain* ) de containers. Se você auditar nossa imagem Docker usando ferramentas como Docker Scout ou Trivy, poderá notar algumas CVEs sinalizadas. Estas vulnerabilidades estão mapeadas e são classificadas estritamente como  **Riscos Aceitos de Terceiros (Accepted Third-Party Risks)** :
 
 * **Google OSV-Scanner (vulnerabilidades `golang`):** Nós buscamos o binário oficial mais recente do `osv-scanner` diretamente das *releases* do Google. Quaisquer CVEs relacionadas ao Golang sinalizadas neste binário são dependências upstream gerenciadas internamente pelo Google.
-* **Alpine & NPM (`tar`, `minimatch`, etc.):** Nossa base utiliza a imagem fortificada `python:3.14-alpine` e força atualizações globais do NPM para minimizar a superfície de ataque. No entanto, algumas dependências transitórias atreladas ao ecossistema do gerenciador de pacotes do Sistema Operacional podem disparar alertas de nível baixo/moderado.
+* **Alpine & NPM (`tar`, `minimatch`, etc.):** Nossa base utiliza a imagem fortificada `python:3.14-alpine` e força atualizações globais do NPM para minimizar a superfície de ataque. No entanto, dependências do gerenciador do SO podem disparar alertas de nível moderado.
 
-*Fique tranquilo: O Sentinel Ops é executado de forma estrita em subprocessos isolados. Esses falsos-positivos e alertas upstream não oferecem qualquer vetor de ataque que possa comprometer seus repositórios remotos ou a integridade do seu servidor host.*
+*Fique tranquilo: O Sentinel Ops é executado em subprocessos isolados. Esses falsos-positivos não oferecem qualquer vetor de ataque aos seus repositórios ou servidor.*
 
 ---
 
@@ -145,8 +124,8 @@ Como uma ferramenta focada em segurança cibernética, o Sentinel Ops mantém ri
 Se você precisa auditar repositórios privados (GitHub, GitLab, Bitbucket):
 
 1. Copie sua chave privada (ex: `id_rsa`) para a pasta `./ssh`.
-2. No `repos.yml`, o campo `ssh_key` deve apontar para `/ssh/nome-do-arquivo`.
-3. **Segurança:** O Sentinel Ops copia sua chave para uma área temporária segura e aplica permissões restritas (`chmod 600`) automaticamente durante a execução.
+2. No painel  **`SYS_CONFIG`** , preencha o campo `Chave SSH` com o caminho `/ssh/nome-do-arquivo` (ex: `/ssh/id_rsa`).
+3. **Segurança:** O Sentinel Ops copia sua chave para uma área temporária segura e aplica permissões restritas (`chmod 600`) automaticamente.
 4. *Não é necessário configurar arquivos `known_hosts` manualmente.*
 
 ---
@@ -159,29 +138,17 @@ Se quiser rodar fora do Docker ou contribuir com o código:
 
 **Bash**
 
+**Bash**
+
 ```
 # 1. Clone este repositório
 git clone https://github.com/chavatte/sentinel-ops.git
-
 # 2. Instale as dependências Python
 pip install -r requirements.txt
 
-# 3. Configure as variáveis de ambiente e rode
-export CONFIG_FILE="./config/repos.yml"
+# 3. Inicie o servidor
 python3 src/main.py
 ```
-
----
-
-## 📸 Screenshots
-| **Dashboard Desktop**                                  |
-| ------------------------------------------------------------ |
-| <img src="./assets/desktop.png" alt="Dashboard Desktop">   |
-| <img src="./assets/desktop_1.png" alt="Dashboard Desktop"> |
-
-| **Responsivo Mobile**                              | **Responsivo Mobile**                                 |
-| -------------------------------------------------------- | ----------------------------------------------------------- |
-| <img src="./assets/mobile.png" alt="Dashboard Mobile"> | <img src="./assets/mobile_1.png" alt="Dashboard Mobiled"> |
 
 ---
 
