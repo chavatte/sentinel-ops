@@ -1,0 +1,83 @@
+@media (max-width: 768px) {
+  .header-row {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+
+  .header-title-group {
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .corp-name {
+    font-size: 0.5em;
+  }
+
+  .header-actions {
+    display: flex;
+    flex-direction: column !important;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .header-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .metrics-row {
+    flex-direction: column !important;
+    gap: 10px;
+  }
+
+  .metric-box {
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+    padding: 15px;
+  }
+
+  .modal-header {
+    align-items: flex-start !important;
+    gap: 15px;
+  }
+
+  .modal-title {
+    font-size: 1.1rem !important;
+    line-height: 1.4;
+    word-break: break-word;
+    padding-right: 10px;
+  }
+
+  .pkg {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .pkg > div:nth-child(1) {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .pkg > div:nth-child(2),
+  .pkg > div:nth-child(3) {
+    text-align: left !important;
+    font-size: 0.75rem !important;
+  }
+
+  .cyber-footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+}

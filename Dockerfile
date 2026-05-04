@@ -13,7 +13,7 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --root-user-action=ignore --no-cache-dir -r requirements.txt
 
-RUN mkdir -p /data /ssh /config
+RUN mkdir -p /data /ssh
 
 COPY src /app/src
 

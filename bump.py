@@ -3,7 +3,7 @@ import re
 import os
 import subprocess
 
-FILES = ["README.md", "README.pt-br.md", "src/static/index.html"]
+FILES = ["README.md", "README.pt-br.md", "src/static/index.html", "src/config.py"]
 
 
 def get_current_version():
@@ -51,10 +51,11 @@ def update_files(old_version, new_version):
             f"version-{old_version}-00ff41", f"version-{new_version}-00ff41"
         )
         content = content.replace(f"?v={old_version}", f"?v={new_version}")
-        content = re.sub(
-            r"(<strong[^>]*var\(--accent\)[^>]*>)\d+\.\d+\.\d+(</strong>)",
-            rf"\g<1>{new_version}\g<2>",
-            content,
+        content = content.replace(
+            f"<strong>{old_version}</strong>", f"<strong>{new_version}</strong>"
+        )
+        content = content.replace(
+            f'APP_VERSION = "{old_version}"', f'APP_VERSION = "{new_version}"'
         )
 
         with open(filepath, "w", encoding="utf-8") as f:
@@ -117,8 +118,8 @@ if __name__ == "__main__":
             .lower()
         )
         if resposta_push in ["", "s", "sim", "y", "yes"]:
-            run_command("docker push chavatte/sentinel-ops:latest")
             run_command(f"docker push chavatte/sentinel-ops:{new_version}")
+            run_command("docker push chavatte/sentinel-ops:latest")
             print(f"🏆 Lançamento da versão {new_version} finalizado 100%!")
         else:
             print("Push cancelado. Você pode enviar a imagem manualmente depois.")
